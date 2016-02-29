@@ -62,19 +62,21 @@ struct ctx {
 	char *line;
 	struct cpustat stat;
 	int cpu;
+	uint8_t bw;
 };
 
 static void usage(struct ctx *ctx, const char *name)
 {
 	printf("Usage: %s <options>\n"
 		"Options:\n"
-		"  -h, --help             print this message\n"
-		"  -s, --size     <WxH>   set window size\n"
-		"  -c, --cpu      <n>     CPU to monitor\n"
-		"  -n, --name     <name>  set class name\n"
-		"  -i, --interval <n>     refresh interval (ms)\n"
-		"  -fg, --fgcolor <n>     foreground color\n"
-		"  -bg, --bgcolor <n>     background color\n"
+		"  -h, --help                  print this message\n"
+		"  -s, --size          <WxH>   set window size\n"
+		"  -c, --cpu           <n>     CPU to monitor\n"
+		"  -n, --name          <name>  set class name\n"
+		"  -i, --interval      <n>     refresh interval (ms)\n"
+		"  -fg, --fgcolor      <n>     foreground color\n"
+		"  -bg, --bgcolor      <n>     background color\n"
+		"  -bw, --border-width <n>     border width (px)\n"
 		"Defaults:\n"
 		"  aggregated load from all CPUs\n"
 		"  class %s, size %dx%d, interval %d ms, fg %d, bg %d\n",
@@ -145,6 +147,10 @@ static int opts(struct ctx *ctx, int argc, char *argv[])
 			if (!param("bgcolor", argv[i + 1]))
 				return -1;
 			ctx->bg = atoi(argv[i + 1]);
+		} else if (opt("-bw", "--border-width", argv[i])) {
+			if (!param("border-width", argv[i + 1]))
+				return -1;
+			ctx->bw = atoi(argv[i + 1]);
 		}
 	}
 
@@ -355,6 +361,12 @@ int main(int argc, char *argv[])
         xcb_change_property(ctx.dpy, XCB_PROP_MODE_REPLACE, ctx.win,
 			    XCB_ATOM_WM_CLASS, XCB_ATOM_STRING, 8,
                             strlen(ctx.class), ctx.class);
+
+	if (ctx.bw) {
+		val[0] = ctx.bw;
+		mask = XCB_CONFIG_WINDOW_BORDER_WIDTH;
+		xcb_configure_window_checked(ctx.dpy, ctx.win, mask, val);
+	}
 
 	xcb_map_window(ctx.dpy, ctx.win);
 	xcb_flush(ctx.dpy);
